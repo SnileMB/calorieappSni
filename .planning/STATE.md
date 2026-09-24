@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-09-24T18:01:22.029Z"
+last_updated: "2026-09-24T18:07:31.940Z"
 progress:
   total_phases: 5
   completed_phases: 0
@@ -22,11 +22,11 @@ progress:
 ## Current Position
 
 Phase: 01 (foundation-infrastructure) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 **Phase:** 1 of 5 — Foundation & Infrastructure
-**Plan:** 01-02 (Supabase Backend: profiles table + RLS) — partially complete, blocked on Task 3 live PostgREST check
+**Plan:** 01-02 (Supabase Backend: profiles table + RLS) — complete; next up is 01-03
 **Status:** Executing Phase 01
-**Progress:** [====      ] 40%
+**Progress:** [████░░░░░░] 40%
 
 ## Performance Metrics
 
@@ -50,13 +50,13 @@ Plan: 2 of 5
 
 ### Blockers
 
-- Plan 01-02 Task 3: live two-account PostgREST check blocked - Supabase 'Confirm email' auth setting was never turned off (per Task 1 setup instructions); toggling it programmatically via Management API was denied by the execution environment's security classifier. User must disable 'Confirm email' in Supabase Dashboard > Authentication > Providers > Email, or explicitly authorize the toggle, to complete the remaining check.
+None
 
 ## Session Continuity
 
-**Last session ended:** Executed 01-02-PLAN.md; Tasks 1-2 complete, Task 3 partially complete (migration pushed, RLS/policies verified, local pgTAP test 6/6 passing) but paused on the live two-account PostgREST check (2026-09-24)
-**Next action:** User disables "Confirm email" in Supabase Dashboard -> Authentication -> Providers -> Email (or explicitly authorizes toggling it programmatically), then resume 01-02 to complete the live PostgREST check, or accept the local pgTAP result as sufficient and proceed to 01-03.
+**Last session ended:** Completed 01-02-PLAN.md — profiles table + RLS + 4 policies pushed to remote Supabase, proven by both a local pgTAP test (6/6 passing) and a live two-account PostgREST black-box check against the real API (2026-09-24)
+**Next action:** Run/execute 01-03-PLAN.md (auth flow).
 
 ---
 *State initialized: 2026-09-23*
-*Last updated: 2026-09-24 after 01-02 partial execution*
+*Last updated: 2026-09-24 after 01-02 complete*

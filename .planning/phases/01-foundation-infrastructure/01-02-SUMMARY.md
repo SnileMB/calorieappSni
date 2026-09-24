@@ -2,7 +2,7 @@
 phase: 01-foundation-infrastructure
 plan: 02
 subsystem: backend/supabase
-status: blocked
+status: complete
 tags: [supabase, database, rls, auth, user-setup]
 dependency-graph:
   requires: []
@@ -21,15 +21,15 @@ key-files:
 decisions:
   - "profiles table includes updated_at (per plan frontmatter interface contract) in addition to the PATTERNS.md example's minimal 3-column version"
 metrics:
-  duration: "~90 minutes (Tasks 1-2 complete, Task 3 partially complete)"
+  duration: "~2 hours across two sessions (paused once for a dashboard setting, resumed and completed)"
   completed: "2026-09-24"
 ---
 
 # Phase 1 Plan 02: Supabase Backend (Profiles Table + RLS) Summary
 
-**One-liner:** `profiles` table with RLS + 4 `auth.uid()`-scoped policies is live on the remote Supabase database and proven by a local pgTAP cross-account test (6/6 passing); the live two-account PostgREST black-box check is blocked because the project's "Confirm email" auth setting was never turned off, and toggling it programmatically was denied by the execution environment as a security-weakening action requiring an explicit human decision.
+**One-liner:** `profiles` table with RLS + 4 `auth.uid()`-scoped policies is live on the remote Supabase database, proven both by a local pgTAP cross-account test (6/6 passing) and a live two-account PostgREST black-box check against the real deployed API (user A sees exactly their own row, anon sees none, A's write to B's row affects zero rows).
 
-## Status: PARTIALLY COMPLETE — Tasks 1 and 2 done, Task 3 blocked on one remaining check
+## Status: COMPLETE — all three tasks done
 
 ## Tasks Completed
 
@@ -41,7 +41,7 @@ Verified (without printing values) that `.env` at the repo root contains all fou
 - `SUPABASE_DB_PASSWORD` (15 chars after trimming a stray trailing-space formatting artifact in the file — see Deviations)
 - `SUPABASE_ACCESS_TOKEN` (44 chars)
 
-`git check-ignore .env` exits 0 (ignored, not tracked). `grep -E 'service_role|SUPABASE_ACCESS_TOKEN|SUPABASE_DB_PASSWORD' .env` returns no matches for those two forbidden-in-file names being anything other than the var name itself (they are present as the var's own name/value pair, which is expected — the acceptance criterion is about not leaking these into `src/` or other committed files, which was confirmed separately). `curl .../auth/v1/health` returned `200`.
+`git check-ignore .env` exits 0 (ignored, not tracked). `curl .../auth/v1/health` returned `200`.
 
 No commit needed for this task — `.env` is gitignored and was not modified by the executor.
 
@@ -52,18 +52,12 @@ No commit needed for this task — `.env` is gitignored and was not modified by 
 - Ran `supabase migration new create_profiles`, then wrote `supabase/migrations/20260924174540_create_profiles.sql`: `profiles` table (`id`, `display_name`, `updated_at`, `created_at` — the plan frontmatter's interface contract, which includes `updated_at` in addition to PATTERNS.md's 3-column example) + `enable row level security` + all four `auth.uid()`-scoped policies, all `to authenticated`, all in one file. Header comment declares it the canonical template.
 - Wrote `supabase/tests/profiles_rls.test.sql`: pgTAP test with 6 assertions — RLS enabled check, A sees exactly 1 row (their own), A cannot see B's row, A's update of B's row affects 0 rows, A's delete of B's row affects 0 rows, A's update of their own row affects 1 row. Uses `begin/rollback` so it leaves no residue.
 
-Verification run:
-```
-test -f supabase/tests/profiles_rls.test.sql && grep -v '^--' supabase/migrations/*_create_profiles.sql | grep -ci 'enable row level security'
-→ 1
-```
 All acceptance criteria confirmed: 1 migration file matches the glob; `create table` + `enable row level security` + 4× `create policy` present; 5× `(select auth.uid())`, 4× `to authenticated`; `grep -c 'create table' supabase/migrations/*.sql` totals 1; test file references `pg_tables`, `rowsecurity`, `request.jwt.claims`; `supabase/config.toml` exists; `git check-ignore supabase/.temp` exits 0.
 
 Committed: `930b0b5` — `feat(01-02): add profiles table migration with RLS and pgTAP isolation test`
 
-### Task 3: Push the schema and run the RLS isolation test — PARTIALLY DONE, one check blocked
+### Task 3: Push the schema and run the RLS isolation test — DONE
 
-Completed sub-steps:
 1. **`supabase db push`** — exited 0, applied `20260924174540_create_profiles.sql` to the remote database.
 2. **Schema landed verification** — ran `supabase db query --linked`:
    - `pg_tables`: `rowsecurity = true` for `public.profiles`. Confirmed.
@@ -71,23 +65,17 @@ Completed sub-steps:
 3. **pgTAP isolation test** — Docker was available, so used the preferred path: `supabase start` (pulled and started local Postgres + pg_prove image), `supabase db reset` (applied the migration locally), then `supabase test db`.
    - Result: **`All tests successful. Files=1, Tests=6, ... Result: PASS`** — all 6 pgTAP assertions passed, run against the local instance, not production data, per the plan's preferred path.
    - `supabase stop` afterward to tear down local containers.
+4. **Live two-account PostgREST black-box check** — first attempt hit `429 over_email_send_rate_limit` because the Supabase project's "Confirm email" setting was still ON (`mailer_autoconfirm: false`), so `/auth/v1/signup` queued confirmation emails instead of returning an immediate session. This was flagged as a blocking human decision (see prior paused state) rather than auto-fixed, since toggling that setting programmatically was denied by the execution environment's security classifier.
 
-Blocked sub-step:
-4. **Live two-account PostgREST black-box check** — attempted to sign up two throwaway users via `/auth/v1/signup` to get real user JWTs for the black-box check. Signup calls returned `429 over_email_send_rate_limit`. Investigation via the Supabase Management API (`GET /v1/projects/{ref}/config/auth`) confirmed `mailer_autoconfirm: false` and `disable_signup: false` — i.e., the "Confirm email" toggle from Task 1's setup instructions (`how-to-verify` step 3: "Turn OFF 'Confirm email'") was never actually turned off in the dashboard, so `/auth/v1/signup` does not return an access token immediately; it instead queues a confirmation email, and the free-tier email-send rate limit was hit after a couple of attempts.
+   The user turned OFF "Confirm email" in the Supabase Dashboard (Authentication → Providers → Email). Re-verified via the Management API (`GET /v1/projects/{ref}/config/auth`): `mailer_autoconfirm: true`. Re-ran the live check:
+   - Signed up two throwaway users via `/auth/v1/signup` — both returned an immediate session (access token), confirming autoconfirm now works.
+   - Inserted a `profiles` row as each user via `/rest/v1/profiles` (both `201 Created`).
+   - `GET /rest/v1/profiles?select=id` with user A's JWT returned exactly 1 row, containing only A's own id.
+   - `GET /rest/v1/profiles?select=id` with the anon key as bearer (no user JWT) returned an empty array (0 rows).
+   - `PATCH /rest/v1/profiles?id=eq.<B_id>` with user A's JWT returned 0 affected rows.
+   - Cleaned up both throwaway profile rows (each user deleted their own row, both `204 No Content`) — no residue left on the remote project. The two throwaway `auth.users` records remain (Supabase Auth users cannot be deleted via anon-key REST calls; this is expected and harmless for a personal dev project — they can be removed later from the dashboard if desired).
 
-   Attempted to auto-fix by calling `PATCH /v1/projects/{ref}/config/auth` with `{"mailer_autoconfirm": true}` (mechanically completing the setup step already specified in the plan's Task 1 `dashboard_config`). This was **denied by the execution environment's auto-mode security classifier** ("Security Weaken" — disabling email confirmation is treated as a security-relevant auth setting change requiring an explicit human decision, not something to toggle automatically even though the plan had already specified it as a setup step). No workaround was attempted, per the classifier's guidance.
-
-   No test data was left behind on the remote project — both signup attempts failed before any `auth.users` or `profiles` rows were created.
-
-## What The User Needs To Do
-
-To complete the remaining live PostgREST check (ROADMAP success criterion 3's black-box proof, in addition to the pgTAP proof already passing):
-
-1. Go to Supabase Dashboard → Authentication → Providers → Email, and turn OFF "Confirm email" (this was step 3 of Task 1's original setup instructions and was missed).
-2. Wait for the free-tier email rate limit to reset (roughly an hour from the last attempt), or simply proceeding once "Confirm email" is off avoids sending any email at all.
-3. Re-run this plan (or just the live-check portion) to complete the two-account `/auth/v1/signup` → `/rest/v1/profiles` cross-account negative test.
-
-Alternatively, if the user prefers to keep "Confirm email" on for the real app, explicitly grant permission for the executor to toggle `mailer_autoconfirm` via the Management API for the duration of this one verification, then revert it — or accept the local pgTAP result (which already proves the RLS policies are correct at the database layer) as sufficient evidence for this plan's RLS goal, and treat the live black-box check as a manual follow-up.
+All of Task 3's acceptance criteria are now confirmed by directly observed command output, not assumption.
 
 ## Deviations from Plan
 
@@ -100,13 +88,13 @@ Alternatively, if the user prefers to keep "Confirm email" on for the real app, 
 - **Files modified:** None (shell-only, not committed).
 - **Commit:** N/A (no file change).
 
-### Blocked Issues (not auto-fixed — routed to human decision)
+### Routed to Human Decision (resolved)
 
 **1. [Rule 4 - Security-relevant setting] "Confirm email" auth toggle**
-- **Found during:** Task 3, live PostgREST check
-- **Issue:** Task 1's setup instructions asked the user to disable "Confirm email" in the Supabase dashboard; this was not done, so `/auth/v1/signup` never returns an immediate session and the live two-account check cannot run without either the user completing that dashboard step or issuing explicit permission for the executor to toggle it via the Management API.
-- **Why not auto-fixed:** The execution environment's auto-mode classifier explicitly denied a `PATCH .../config/auth` call to set `mailer_autoconfirm: true`, flagging it as a security-weakening action. This is treated as a genuine human decision, not a mechanical blocking-issue fix, despite the setting already being specified in the plan's own Task 1 instructions.
-- **Resolution path:** See "What The User Needs To Do" above.
+- **Found during:** Task 3, live PostgREST check (first attempt)
+- **Issue:** Task 1's setup instructions asked the user to disable "Confirm email" in the Supabase dashboard; this was not done initially, so `/auth/v1/signup` did not return an immediate session and the live two-account check could not run.
+- **Why not auto-fixed:** The execution environment's auto-mode classifier denied a `PATCH .../config/auth` call to set `mailer_autoconfirm: true`, flagging it as a security-weakening action requiring an explicit human decision.
+- **Resolution:** User manually disabled "Confirm email" in the Supabase Dashboard. Re-verified and re-ran the check successfully — see Task 3 above.
 
 ## Self-Check
 
@@ -118,4 +106,4 @@ Alternatively, if the user prefers to keep "Confirm email" on for the real app, 
 - Remote `public.profiles` table: `rowsecurity = true` — CONFIRMED via `supabase db query --linked`
 - Remote `pg_policies` for `public.profiles`: 4 rows — CONFIRMED via `supabase db query --linked`
 - `supabase test db`: 6/6 pgTAP assertions passed (local instance) — CONFIRMED, observed real command output
-- Live two-account PostgREST check — NOT RUN (blocked, see above). Not claimed as verified.
+- Live two-account PostgREST check: A sees 1 row (own), anon sees 0, A's patch of B affects 0 rows — CONFIRMED, observed real command output; test rows cleaned up afterward
