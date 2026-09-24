@@ -1,9 +1,9 @@
 ---
 phase: 01
 slug: foundation-infrastructure
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: planned
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-09-23
 ---
 
@@ -17,20 +17,20 @@ created: 2026-09-23
 
 | Property | Value |
 |----------|-------|
-| **Framework** | None detected — greenfield repo, no test runner configured yet. `supabase test db` (pgTAP) recommended for the one automatable check (RLS cross-account isolation). |
-| **Config file** | none — Wave 0 introduces `supabase/tests/` if pgTAP is adopted |
-| **Quick run command** | `npx lighthouse <url> --only-categories=pwa` (PWA installability smoke check) |
-| **Full suite command** | `supabase test db` (if pgTAP RLS tests added) + manual pass through all 5 success criteria |
-| **Estimated runtime** | ~30-60s (Lighthouse) / manual steps untimed |
+| **Framework** | **Vitest** (introduced plan 01-01 Task 3) for JS/TS unit + source-assertion tests; **pgTAP** via `supabase test db` (introduced plan 01-02) for the RLS cross-account isolation check. |
+| **Config file** | `vite.config.ts` (`test:` block) for Vitest; `supabase/config.toml` + `supabase/tests/profiles_rls.test.sql` for pgTAP |
+| **Quick run command** | `npm test` (Vitest, `vitest run` — no watch flag) |
+| **Full suite command** | `npm test && npx tsc --noEmit && npm run build && supabase test db`, then `npx lighthouse http://localhost:4173 --only-categories=pwa`, then the 3 checkpoint verifications |
+| **Estimated runtime** | ~10-20s (Vitest + typecheck), ~30-60s (build + Lighthouse), pgTAP ~10s / checkpoint steps untimed |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Manual verification per the Per-Task Verification Map below — no automated unit-test framework exists yet for this phase's largely infrastructure/operational scope
+- **After every task commit:** Run the task's `Automated Command` from the Per-Task Verification Map below. 12 of 15 tasks have a real automated gate; the 3 checkpoint tasks are device- or time-bound and are verified by the human steps in their plan.
 - **After every plan wave:** Full manual pass through all 5 success criteria in ROADMAP.md §Phase 1
 - **Before `/bm:verify-work`:** All 5 success criteria manually confirmed true; Lighthouse PWA audit green; RLS cross-account check passes
-- **Max feedback latency:** N/A — this phase has no automated red/green test loop; feedback is manual per task
+- **Max feedback latency:** < 60s for every automated gate. No run of 3 consecutive tasks lacks an automated verify (the checkpoints at 01-03-T3, 01-04-T3, 01-05-T3 are each preceded by 2 automated-gate tasks in the same plan).
 
 ---
 
@@ -38,11 +38,21 @@ created: 2026-09-23
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 01-XX-XX | TBD | TBD | SETUP-01 | — | App installable (manifest valid, SW registers, iOS Add-to-Home-Screen instructional fallback shown) | manual/smoke | `npx lighthouse <url> --only-categories=pwa` + manual iPhone Safari test | ❌ W0 | ⬜ pending |
-| 01-XX-XX | TBD | TBD | SETUP-02 | T-01-RLS | Every Supabase table has RLS enabled in the same migration that creates it; signed-in user cannot read another user's rows | integration | `supabase test db` (pgTAP) or manual two-account script | ❌ W0 | ⬜ pending |
-| 01-XX-XX | TBD | TBD | SETUP-03 | — | Keep-alive GitHub Actions workflow independently pings Supabase on schedule | operational check | GitHub Actions run history + Supabase dashboard "last active" observed after ~8+ days | ❌ W0 (inherently manual/operational — no automated test) | ⬜ pending |
-| 01-XX-XX | TBD | TBD | SYNC-01 | — | Data written by one signed-in device/session is immediately visible on a second device/session | manual/e2e | Manual: sign in on two browser sessions, write on one, reload on the other | ❌ W0 | ⬜ pending |
-| 01-XX-XX | TBD | TBD | SYNC-02 | — | Auth is email/password, not anonymous | manual/smoke | Manual sign-up/sign-in flow test; assert no `signInAnonymously` call exists in code | ❌ W0 | ⬜ pending |
+| 01-01-T1 | 01-01 | 1 | SETUP-01 | T-01-04, T-01-SC | Scaffold builds; `.env` gitignored; only audited packages installed | build/smoke | `npm run build && npx tsc --noEmit` | ✅ created by 01-01 T1 | ⬜ pending |
+| 01-01-T2 | 01-01 | 1 | SETUP-01 | T-01-01, T-01-02 | Single Supabase client; no `service_role` in client code; session persistence on | typecheck/source | `npx tsc --noEmit` | ✅ created by 01-01 T2 | ⬜ pending |
+| 01-01-T3 | 01-01 | 1 | SYNC-02 | T-01-03 | Automated guard: no `signInAnonymously`, one `createClient`, no service-role key | unit (source assertion) | `npm test` | ✅ `src/lib/__tests__/supabase-client.test.ts` (closes Wave 0 test-runner gap) | ⬜ pending |
+| 01-02-T1 | 01-02 | 1 | SETUP-02 | T-01-07 | Real credentials in gitignored `.env`; no token/DB password written to disk | manual/CLI | `curl -sf -o /dev/null -w '%{http_code}' "$VITE_SUPABASE_URL/auth/v1/health" -H "apikey: $VITE_SUPABASE_ANON_KEY"` → 200 | ✅ `.env` | ⬜ pending |
+| 01-02-T2 | 01-02 | 1 | SETUP-02 | T-01-RLS, T-01-05, T-01-06 | Table + RLS enable + 4 `to authenticated` policies scoped `(select auth.uid())`, one migration file | source assertion | `grep -v '^--' supabase/migrations/*_create_profiles.sql \| grep -ci 'enable row level security'` | ✅ migration + `supabase/tests/profiles_rls.test.sql` (closes Wave 0 pgTAP gap) | ⬜ pending |
+| 01-02-T3 | 01-02 | 1 | SETUP-02 | T-01-RLS, T-01-08 | **[BLOCKING]** schema pushed to remote; cross-account read/update/delete denied | integration (pgTAP + live PostgREST) | `supabase db push && supabase test db` | ✅ `supabase/tests/profiles_rls.test.sql` | ⬜ pending |
+| 01-03-T1 | 01-03 | 2 | SYNC-01, SYNC-02 | T-01-10, T-01-11 | Error copy never leaks raw Supabase/HTTP text or account existence; profile access is RLS-scoped, not app-scoped | unit | `npm test` | ✅ `src/auth/__tests__/authErrors.test.ts`, `src/profile/__tests__/profileApi.test.ts` | ⬜ pending |
+| 01-03-T2 | 01-03 | 2 | SYNC-01, SYNC-02 | T-01-09, T-01-13, T-01-14 | Email/password only; session derived from `onAuthStateChange` with unsubscribe; sign-out clears UI | build + source assertion | `npm run build && npm test && npx tsc --noEmit` | ✅ | ⬜ pending |
+| 01-03-T3 | 01-03 | 2 | SYNC-01, SYNC-02 | T-01-12 | Session survives reload/restart; write on session A visible in session B | manual/e2e (checkpoint) | none — two live browser sessions required (see Manual-Only Verifications) | ✅ | ⬜ pending |
+| 01-04-T1 | 01-04 | 2 | SETUP-03 | T-01-15, T-01-16, T-01-17, T-01-19 | Daily PostgREST select; explicit HTTP 200 gate; secrets never hardcoded or echoed | config validation | `python3 -c "import yaml;d=yaml.safe_load(open('.github/workflows/keep-alive.yml'));t=d.get(True) or d.get('on');assert 'schedule' in t and 'workflow_dispatch' in t"` | ✅ `.github/workflows/keep-alive.yml` | ⬜ pending |
+| 01-04-T2 | 01-04 | 2 | SETUP-03 | T-01-18 | 60-day Actions auto-disable risk documented, not assumed away | doc assertion | `test -s docs/keep-alive.md && grep -qi '60 days' docs/keep-alive.md` | ✅ `docs/keep-alive.md` | ⬜ pending |
+| 01-04-T3 | 01-04 | 2 | SETUP-03 | T-01-17 | Real dispatch run returns 200 with masked secrets; 8-10 day pause observation scheduled | operational (checkpoint) | none — GitHub Actions run history + Supabase dashboard over 8+ days | ✅ | ⬜ pending |
+| 01-05-T1 | 01-05 | 3 | SETUP-01 | T-01-20, T-01-21, T-01-22, T-01-SC | Manifest + SW generated; no `runtimeCaching` of API/auth responses; 180×180 opaque apple-touch-icon linked | build assertion | `npm run build && test -f dist/manifest.webmanifest && test -f dist/sw.js && test -f dist/apple-touch-icon.png` | ✅ | ⬜ pending |
+| 01-05-T2 | 01-05 | 3 | SETUP-01 | T-01-24 | iOS gets an instructional banner (never an inert Install button); installed state hides both affordances | unit | `npm test` | ✅ `src/lib/__tests__/installDetect.test.ts` | ⬜ pending |
+| 01-05-T3 | 01-05 | 3 | SETUP-01 | T-01-23 | Lighthouse PWA clean; offline shell renders; real iPhone Add-to-Home-Screen icon correct; standalone launch | manual/smoke (checkpoint) | `npx lighthouse http://localhost:4173 --only-categories=pwa --quiet --chrome-flags="--headless"` + real-device pass | ✅ | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 *Task IDs are placeholders — the planner fills in real Plan/Wave/Task IDs when PLAN.md files are created.*
@@ -51,9 +61,10 @@ created: 2026-09-23
 
 ## Wave 0 Requirements
 
-- [ ] Decide/introduce a test framework for any pure-function unit tests that emerge later (e.g. Vitest) — this phase itself is mostly infrastructure/manual-verification work, not unit-testable logic
-- [ ] `supabase/tests/profiles_rls.sql` (pgTAP) — optional but recommended for an automatable RLS cross-account check, covers SETUP-02
-- [ ] No app logic exists yet to unit test — this phase's verification is primarily manual/operational, which is appropriate given its infrastructure nature
+- [x] Test framework: **Vitest**, introduced in plan 01-01 Task 3 (`npm test` → `vitest run`, no watch flag). Config lives in the `test:` block of `vite.config.ts`.
+- [x] `supabase/tests/profiles_rls.test.sql` (pgTAP) — created in plan 01-02 Task 2, executed in 01-02 Task 3 via `supabase test db`; covers SETUP-02 cross-account isolation.
+- [x] Source-assertion guard suite (`src/lib/__tests__/supabase-client.test.ts`) converts three previously manual code-review checks (no `signInAnonymously`, single `createClient`, no `service_role` in `src/`) into automated tests.
+- [x] Remaining genuinely-manual items are the three checkpoint tasks (01-03-T3 cross-device, 01-04-T3 operational pause observation, 01-05-T3 real-device install) — all device- or time-bound, none automatable in-process.
 
 ---
 
@@ -70,11 +81,11 @@ created: 2026-09-23
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < N/A (manual-verification phase)
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or are explicit checkpoint tasks with human verification steps
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references (Vitest in 01-01 T3, pgTAP in 01-02 T2)
+- [x] No watch-mode flags (`npm test` is `vitest run`)
+- [x] Feedback latency < 60s for all automated gates
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** planner-filled 2026-09-23; awaiting execution results

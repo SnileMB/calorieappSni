@@ -24,7 +24,13 @@
   3. Every Supabase table has RLS enabled with an `auth.uid()`-scoped policy created in the same migration as the table, verified by confirming a signed-in user cannot read another user's rows
   4. The Supabase project stays active (does not auto-pause) after 7+ days of no manual interaction, confirmed by an independently-running scheduled keep-alive job
   5. Data written to any table by the signed-in user is immediately visible when the user loads the app from a second browser/device
-**Plans**: TBD
+**Plans**: 5 plans in 3 waves
+Plans:
+- [ ] 01-01-PLAN.md — Vite + React + TS scaffold, Supabase client singleton, Vitest guard tests (wave 1)
+- [ ] 01-02-PLAN.md — Supabase project, profiles migration with same-migration RLS, db push, cross-account isolation test (wave 1)
+- [ ] 01-03-PLAN.md — Email/password auth, AuthContext session provider, profile read/write cross-device sync proof (wave 2)
+- [ ] 01-04-PLAN.md — GitHub Actions daily keep-alive ping against PostgREST (wave 2)
+- [ ] 01-05-PLAN.md — vite-plugin-pwa manifest/service worker, icon set, branching install UI, real-device install verification (wave 3)
 **UI hint**: yes
 
 ### Phase 2: Core Logging — Photo/Text Capture, Review & Diary
@@ -78,7 +84,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Infrastructure | 0/TBD | Not started | - |
+| 1. Foundation & Infrastructure | 0/5 | Not started | - |
 | 2. Core Logging — Photo/Text Capture, Review & Diary | 0/TBD | Not started | - |
 | 3. Barcode & Label/Menu OCR Logging | 0/TBD | Not started | - |
 | 4. Goals & TDEE Autopilot | 0/TBD | Not started | - |
@@ -86,4 +92,4 @@
 
 ---
 *Roadmap created: 2026-09-23*
-*Last updated: 2026-09-23*
+*Last updated: 2026-09-23 after Phase 1 planning*
