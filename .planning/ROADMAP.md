@@ -31,7 +31,7 @@
 Plans:
 **Wave 1**
 
-- [ ] 01-01-PLAN.md — Vite + React + TS scaffold, Supabase client singleton, Vitest guard tests (wave 1)
+- [x] 01-01-PLAN.md — Vite + React + TS scaffold, Supabase client singleton, Vitest guard tests (wave 1)
 - [ ] 01-02-PLAN.md — Supabase project, profiles migration with same-migration RLS, db push, cross-account isolation test (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
@@ -108,7 +108,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Infrastructure | 0/5 | Not started | - |
+| 1. Foundation & Infrastructure | 1/5 | In Progress|  |
 | 2. Core Logging — Photo/Text Capture, Review & Diary | 0/TBD | Not started | - |
 | 3. Barcode & Label/Menu OCR Logging | 0/TBD | Not started | - |
 | 4. Goals & TDEE Autopilot | 0/TBD | Not started | - |
