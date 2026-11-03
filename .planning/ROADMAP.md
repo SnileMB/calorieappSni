@@ -36,7 +36,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 01-03-PLAN.md — Email/password auth, AuthContext session provider, profile read/write cross-device sync proof (wave 2)
+- [x] 01-03-PLAN.md — Email/password auth, AuthContext session provider, profile read/write cross-device sync proof (wave 2)
 - [ ] 01-04-PLAN.md — GitHub Actions daily keep-alive ping against PostgREST (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
@@ -108,7 +108,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation & Infrastructure | 2/5 | In Progress|  |
+| 1. Foundation & Infrastructure | 3/5 | In Progress|  |
 | 2. Core Logging — Photo/Text Capture, Review & Diary | 0/TBD | Not started | - |
 | 3. Barcode & Label/Menu OCR Logging | 0/TBD | Not started | - |
 | 4. Goals & TDEE Autopilot | 0/TBD | Not started | - |

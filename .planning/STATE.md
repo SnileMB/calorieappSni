@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-last_updated: "2026-09-24T18:07:31.940Z"
+last_updated: "2026-11-03T18:44:15.805Z"
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 5
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -22,11 +22,11 @@ progress:
 ## Current Position
 
 Phase: 01 (foundation-infrastructure) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 **Phase:** 1 of 5 — Foundation & Infrastructure
-**Plan:** 01-02 (Supabase Backend: profiles table + RLS) — complete; next up is 01-03
+**Plan:** 01-03 (Email/password auth + cross-device sync proof) — complete; next up is 01-04
 **Status:** Executing Phase 01
-**Progress:** [████░░░░░░] 40%
+**Progress:** [██████░░░░] 60%
 
 ## Performance Metrics
 
@@ -43,6 +43,8 @@ Plan: 3 of 5
 - Phase 4 (Goals & TDEE Autopilot) is sequenced after Phase 2 (Core Logging) because GOAL-02/GOAL-03 require 14+ days of accumulated weight+intake data that can only start logging once core diary/logging exists.
 - A follow-up research pass on PWA-specific patterns (getUserMedia camera capture, service worker/offline caching, install prompts, Supabase Edge Function calls from a web client) is expected during phase-level planning for Phase 1/2, since initial research (STACK/ARCHITECTURE/PITFALLS.md) assumed native Expo/EAS distribution.
 - [Phase ?]: profiles table includes updated_at (per plan 01-02 frontmatter interface contract) in addition to PATTERNS.md's minimal 3-column example
+- [Phase 01]: Plan 01-03: switch-between-signup/login toggle is local boolean state in App.tsx, not a router (matches plan's no-router guidance for 2 screens)
+- [Phase 01]: Plan 01-03: live cross-device sync verification used npm run dev -- --host so a real second device (iPhone on LAN) could log in, not just a second browser tab
 
 ### Open Todos
 
@@ -54,9 +56,9 @@ None
 
 ## Session Continuity
 
-**Last session ended:** Completed 01-02-PLAN.md — profiles table + RLS + 4 policies pushed to remote Supabase, proven by both a local pgTAP test (6/6 passing) and a live two-account PostgREST black-box check against the real API (2026-09-24)
-**Next action:** Run/execute 01-03-PLAN.md (auth flow).
+**Last session ended:** Completed 01-03-PLAN.md — Supabase email/password auth wired end-to-end (AuthContext/SignIn/SignUp/ProfilePanel), with live two-browser-session cross-device sync and session-persistence verification approved by the user (2026-11-03)
+**Next action:** Run/execute 01-04-PLAN.md.
 
 ---
 *State initialized: 2026-09-23*
-*Last updated: 2026-09-24 after 01-02 complete*
+*Last updated: 2026-11-03 after 01-03 complete*

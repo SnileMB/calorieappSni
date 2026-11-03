@@ -51,8 +51,8 @@ Requirements for initial private release. Each maps to roadmap phases.
 
 ### Sync
 
-- [ ] **SYNC-01**: User's data (diary, goals, saved meals, profile) is stored in Supabase Postgres and accessible from any of the user's own signed-in devices
-- [ ] **SYNC-02**: User authenticates via email/password (not anonymous auth) so data persists reliably across devices and reinstalls
+- [x] **SYNC-01**: User's data (diary, goals, saved meals, profile) is stored in Supabase Postgres and accessible from any of the user's own signed-in devices
+- [x] **SYNC-02**: User authenticates via email/password (not anonymous auth) so data persists reliably across devices and reinstalls
 
 ## v2 Requirements
 
@@ -89,8 +89,8 @@ Explicitly excluded. Documented to prevent scope creep.
 | SETUP-01 | Phase 1 | Pending |
 | SETUP-02 | Phase 1 | Complete |
 | SETUP-03 | Phase 1 | Pending |
-| SYNC-01 | Phase 1 | Pending |
-| SYNC-02 | Phase 1 | Pending |
+| SYNC-01 | Phase 1 | Complete |
+| SYNC-02 | Phase 1 | Complete |
 | CAP-01 | Phase 2 | Pending |
 | CAP-02 | Phase 2 | Pending |
 | CAP-03 | Phase 2 | Pending |
