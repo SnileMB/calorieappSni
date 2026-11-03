@@ -11,7 +11,7 @@ Requirements for initial private release. Each maps to roadmap phases.
 
 - [ ] **SETUP-01**: App is an installable PWA (add-to-Home-Screen, manifest + service worker) accessible from any browser, including the user's iPhone — no code-signing, no app store, no reinstall cycle
 - [x] **SETUP-02**: Backend runs entirely on Supabase free tier (Auth, Postgres, Edge Functions, Storage) with RLS enabled on every table from creation
-- [ ] **SETUP-03**: Supabase project stays awake via a scheduled keep-alive ping (avoids the 7-day free-tier auto-pause)
+- [x] **SETUP-03**: Supabase project stays awake via a scheduled keep-alive ping (avoids the 7-day free-tier auto-pause)
 
 ### Capture
 
@@ -88,7 +88,7 @@ Explicitly excluded. Documented to prevent scope creep.
 |-------------|-------|--------|
 | SETUP-01 | Phase 1 | Pending |
 | SETUP-02 | Phase 1 | Complete |
-| SETUP-03 | Phase 1 | Pending |
+| SETUP-03 | Phase 1 | Complete |
 | SYNC-01 | Phase 1 | Complete |
 | SYNC-02 | Phase 1 | Complete |
 | CAP-01 | Phase 2 | Pending |

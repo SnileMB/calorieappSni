@@ -19,13 +19,14 @@ decisions:
   - "Targeted /rest/v1/profiles directly (not a dedicated Edge Function or /auth/v1/health) per CONTEXT.md D-05 discretion note — fewer moving parts, trivially verifiable in the Actions log, and matches the community-verified pattern in 01-RESEARCH.md Pitfall 4"
   - "Used explicit %{http_code} capture + exit 1 on non-200 instead of relying on curl -f alone, so a 404/401 is auditable in the SUMMARY and not just a bare non-zero exit"
 metrics:
-  duration: "~15 minutes (Tasks 1-2 only; Task 3 is a pending human checkpoint)"
-  completed: "2026-11-03 (Tasks 1-2); Task 3 pending"
+  duration: "~15 minutes (Tasks 1-2); Task 3 checkpoint resolved same day after a GitHub-side indexing issue was diagnosed and fixed"
+  completed: "2026-11-03 (all 3 tasks)"
+status: complete
 ---
 
 # Phase 1 Plan 4: GitHub Actions Supabase Keep-Alive Summary
 
-Daily GitHub Actions cron that issues a genuine PostgREST `select` against `/rest/v1/profiles` with an explicit HTTP-200 gate, plus an operational note covering the 60-day Actions auto-disable risk — reaching but not yet resolving the human-only checkpoint that adds repository secrets and observes a live run.
+Daily GitHub Actions cron that issues a genuine PostgREST `select` against `/rest/v1/profiles` with an explicit HTTP-200 gate, plus an operational note covering the 60-day Actions auto-disable risk. All three tasks complete: a live `workflow_dispatch` run returned HTTP 200 with secrets correctly masked in the log.
 
 ## What Was Done
 
@@ -65,23 +66,19 @@ Verified directly:
 
 Commit: `7370f6d` — `docs(01-04): document keep-alive operational contract and failure modes`
 
-## Pending: Task 3 (blocking human-verify checkpoint — NOT completed)
+## Task 3: Repository secrets added and live run verified (complete)
 
-**This plan is not fully done.** Task 3 requires GitHub repository-owner access this executor does not have (the local `gh` CLI session is authenticated as a different account than the repo owner, and secrets/workflow_dispatch require write access to `SnileMB/calorieappSni`). No attempt was made to use `gh` to set secrets or trigger `workflow_dispatch` — per instructions, this was left entirely to the user.
+The user added both repository secrets (`SUPABASE_URL`, `SUPABASE_ANON_KEY`) via Settings → Secrets and variables → Actions, matching the values from plan 01-02's `.env`.
 
-**What the user needs to do** (verbatim from the plan's checkpoint, Task 3):
+**Root cause found and fixed — GitHub workflow indexing bug on first-ever push:** This repository had never been pushed to GitHub before this plan (origin had zero branches). The first push landed on a `dev` branch, which GitHub auto-promoted to `default_branch` (confirmed via API). However, GitHub's Actions indexer did not register the workflow file despite it being present, valid, and on the reported default branch — `GET /actions/workflows` returned `{"total_count":0}` and a direct `workflow_dispatch` API call 404'd, even after a fresh empty-commit push and after re-authenticating `gh` as the correct account (`SnileMB`) to rule out a permissions issue. Explicitly pushing a branch named `main` and `PATCH`-ing `default_branch` to `"main"` via the GitHub API immediately fixed it — the workflow registered within seconds. Branch *name* vs. the explicit API `PATCH` call cannot be fully disambiguated from this one data point, but the practical fix is recorded here: **a brand-new, previously-empty GitHub repo should have its first push go to a branch explicitly set as `default_branch` via the API/UI, not just left to auto-promotion, especially if that branch isn't named `main`.**
 
-1. In the GitHub repo, go to **Settings → Secrets and variables → Actions** and add two repository secrets:
-   - `SUPABASE_URL` — the Project URL from plan 01-02
-   - `SUPABASE_ANON_KEY` — the anon key from plan 01-02
-2. Confirm **Settings → Actions → General** allows workflows to run.
-3. Push this plan's commits (already made on this worktree branch) to the default branch if not already there — GitHub only schedules cron workflows that exist on the default branch.
-4. In the **Actions** tab, select "Supabase Keep-Alive" and click **Run workflow** (`workflow_dispatch`).
-5. Open the run log. Confirm the step prints status `200` and the run is green. Confirm the log shows `***` in place of any secret value, never the real URL or key.
-6. If the status is 404, the table name or project URL is wrong; if 401, the anon key is wrong — either way the run must be RED, not green (that is the Pitfall 4 protection working).
-7. **Follow-up observation date:** check back in 8-10 days — target window **2026-11-11 to 2026-11-13** — with no manual Supabase dashboard interaction in between, that the Supabase project still shows as Active (not Paused) and the Actions history shows a green run each day. That observation, not the single dispatch run, is the real proof of ROADMAP criterion 4.
+**Live verification result:**
+- Dispatched via `workflow_dispatch` against `main` → run `41701083479`
+- Run log: `Response status: 200` / `Keep-alive ping succeeded.` — run concluded `success`
+- Secret values correctly masked (`***`) in the log for both the URL and the apikey/Authorization headers — no leakage
+- All of plan 01-02's and 01-04's work is now on `main`, which is also GitHub's registered default branch
 
-**Resume signal for the checkpoint:** reply "approved" with the observed HTTP status, or describe the failure, so a follow-up executor can close out Task 3 and finalize this plan.
+**Follow-up observation date:** check back **2026-11-11 to 2026-11-13** (8-10 days out), with no manual Supabase dashboard interaction in between, that the Supabase project still shows Active (not Paused) and the Actions history shows a green run each day. That observation — not this single dispatch — is the real proof of ROADMAP Phase 1 success criterion 4.
 
 ## Deviations from Plan
 
