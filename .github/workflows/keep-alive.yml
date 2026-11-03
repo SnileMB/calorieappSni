@@ -1,0 +1,38 @@
+# Supabase Keep-Alive
+#
+# Purpose: Supabase free-tier projects auto-pause after 7 days with no API
+# activity. This job issues a daily PostgREST select against a real table
+# so the project is never idle long enough to trigger that pause.
+#
+# Known risk: GitHub disables scheduled workflows on repositories with no
+# activity for 60 days. That would silently stop this job with no error on
+# the Supabase side. See docs/keep-alive.md for the operational note and the
+# periodic manual check this risk requires.
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    - cron: '0 12 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST endpoint
+        run: |
+          HTTP_CODE=$(curl -sS --max-time 30 \
+            -o /dev/null \
+            -w '%{http_code}' \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/profiles?select=id&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}")
+
+          echo "Response status: $HTTP_CODE"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Keep-alive ping failed: expected HTTP 200, got $HTTP_CODE"
+            exit 1
+          fi
+
+          echo "Keep-alive ping succeeded."
